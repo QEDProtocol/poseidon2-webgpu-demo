@@ -1,3 +1,4 @@
+
 /*
 MIT License
 
@@ -105,6 +106,7 @@ fn mul64(a:u32, b:u32) -> vec2<u32>{
 fn mul128(a: vec2<u32>, b: vec2<u32>) -> vec4 <u32>{
   // Compute 64 bit half products
   // Each of these is at most 0xfffffffe00000001
+  
   var a0b0 = mul64(a.x, b.x);
   var a0b1 = mul64(a.x, b.y);
   var a1b0 = mul64(a.y, b.x);
@@ -185,21 +187,50 @@ fn reduce(n: vec4 <u32>) -> vec2<u32>{
   return r;
 }
 
+
+fn reduce96(n: vec3 <u32>) -> vec2<u32>{
+  // use 96 bit reduction for addition
+
+  var r = n.xy;
+
+  // subtract n.z
+  if (r.x<n.z) {
+    if (r.y == 0u) {
+      // Add p
+      r.x += 1u; // Can not overflow
+      r.y = 0xffffffffu;
+    }
+    r.y -= 1u;
+  }
+  r.x -= n.z;
+
+  // Add n.z * 2^32
+  r.y += n.z;
+  if (r.y<n.z) {
+    // Add 2**64 mod p = 0xffffffff
+    r.x += 0xffffffffu;
+    if (r.x<0xffffffffu) {
+      r.y += 1u; // Can not overflow
+    }
+  }
+
+  // Reduce mod p
+  if (r.y == 0xffffffffu && r.x != 0u) {
+    r.y = 0u;
+    r.x -= 1u; // Can not underflow
+  }
+
+  return r;
+}
+
 fn mul(a: GoldilocksField, b: GoldilocksField) -> GoldilocksField {
   return reduce(mul128(a, b));
 }
 
-fn add128(a: vec2<u32>, b: vec2<u32>) -> vec4 <u32>{
-  let lower = a.x + b.x;
-  let carryUpper = select(0u, 1u, lower<a.x);
-  let upper = a.y + b.y + carryUpper;
-  let top = select(0u, 1u,upper<a.y ||upper<b.y);
-  // w is always 0, since the sum of two field elements are at most 0x1fffffffc00000002 (65 bits)
-  return vec4 <u32>(lower,upper, top, 0u);
-}
-
 fn add(a: GoldilocksField, b: GoldilocksField) -> GoldilocksField {
-  return reduce(add128(a, b));
+  let lower = a.x + b.x;
+  let upper = a.y + b.y + select(0u, 1u, lower<a.x);
+  return reduce96(vec3 <u32>(lower,upper,  select(0u, 1u, upper<a.y)));
 }
 
 fn add3(a: GoldilocksField, b: GoldilocksField, c: GoldilocksField) -> GoldilocksField {
@@ -284,17 +315,33 @@ fn poseidon2_matmulInternal() {
 }
 fn poseidon2_permute() {
   poseidon2_matmulExternal();
-
+  /*
+  // slightly faster without this loop, cannot unroll the others due to lack of registers
   for (var r = 0u; r<4u; r++) {
     poseidon2_addRc(r);
     poseidon2_sbox();
     poseidon2_matmulExternal();
-  }
+  }*/
+  
+  poseidon2_addRc(0u);
+  poseidon2_sbox();
+  poseidon2_matmulExternal();
+  poseidon2_addRc(1u);
+  poseidon2_sbox();
+  poseidon2_matmulExternal();
+  poseidon2_addRc(2u);
+  poseidon2_sbox();
+  poseidon2_matmulExternal();
+  poseidon2_addRc(3u);
+  poseidon2_sbox();
+  poseidon2_matmulExternal();
+
 
   for (var r = 4u; r<26u; r++) {
     input[0] = pow7(add(input[0], RC12[r][0]));
     poseidon2_matmulInternal();
   }
+  
   for (var r = 26u; r<30u; r++) {
     poseidon2_addRc(r);
     poseidon2_sbox();
