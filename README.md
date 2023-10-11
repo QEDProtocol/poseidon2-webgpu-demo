@@ -7,7 +7,7 @@ A browser benchmark which compares the performance of hashing a poseidon2-goldil
 
 </p>
 
-### Demo Link - Note: Required latest version of Chrome/WebGPU supported browser
+### Demo Link - Requires the latest version of Chrome or a browser that supports WebGPU
 <p align="center">
 
 <a href="https://webgpu-demo.qedprotocol.com">
