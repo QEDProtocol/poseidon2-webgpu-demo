@@ -10,12 +10,12 @@ A browser benchmark which compares the performance of hashing a poseidon2-goldil
 ### Demo Link - Requires the latest version of Chrome or a browser that supports WebGPU
 <p align="center">
 
-<a href="https://webgpu-demo.qedprotocol.com">
+<a href="https://s684hf.csb.app/">
 <img height="300" src="public/demo-screenshot.png">
 </a>
 <p align="center">
-<a href="https://webgpu-demo.qedprotocol.com">
-https://webgpu-demo.qedprotocol.com
+<a href="https://s684hf.csb.app/">
+Open Benchmark Demo 
 </a>
 </p>
 </p>
